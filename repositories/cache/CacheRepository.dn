@@ -22,8 +22,10 @@ libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, 
             if(cache[i].id == 0) newPosts = new Post[](newPosts, cache[i])
         }
 
-        PostsRepository repo = new PostsRepository()
-        repo.addPosts(newPosts)
+        if(newPosts.arrayLength > 0) {
+            PostsRepository repo = new PostsRepository()
+            repo.addPosts(newPosts)
+        }
     }
 
 
