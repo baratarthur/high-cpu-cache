@@ -29,7 +29,7 @@ component provides libs.utils.Lab requires repositories.posts.PostsRepository, u
         return newStateInOrderById
     }
 
-    void switch(Post array[], int index1, int index2) {
+    void switch(store Post array[], int index1, int index2) {
         Post aux = array[index2]
         array[index2] = array[index1]
         array[index1] = aux
