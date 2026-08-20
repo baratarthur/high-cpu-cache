@@ -1,0 +1,25 @@
+uses libs.utils.Constants
+
+component provides libs.network.rpc.NonBlockRPC requires libs.network.rpc.RPCUtil rpcUtil, time.Calendar ic {
+    Response acc[] = new Response[]()
+
+    Response[] NonBlockRPC:nonBlockingBroadcastList(Request r, Address remotes[]) {
+        Thread threads[] = new Thread[]()
+        
+        for(int i = 0; i < remotes.arrayLength; i++) {
+            ReqWrapper w = new ReqWrapper(r, remotes[i], i)
+            Thread t = asynch::makeNonBlockingRequest(w)
+            threads = new Thread[](threads, t)
+        }
+
+        for(int i = 0; i < threads.arrayLength; i++) {
+            threads[i].join()
+        }
+
+        return acc
+    }
+
+    void makeNonBlockingRequest(ReqWrapper w) {
+        acc = new Response[](acc, rpcUtil.make(w))
+    }
+}

@@ -1,0 +1,89 @@
+uses libs.utils.Constants
+uses libs.utils.DatabaseConfig
+
+const char debugMSG[] = "[@PostsRepository]"
+const int PAGINATION_SIZE = 5
+
+component provides repositories.posts.PostsRepository requires time.TimeUnix timeUnix, time.Calendar ic, data.IntUtil iu, data.mysql.MySQL,
+libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, libs.utils.PostsUtils pu, libs.krabs.MetricsStore ms {
+    void PostsRepository:addPosts(store Post newPosts[]) {
+        char query[] = "INSERT INTO posts (userId, content) VALUES "
+        
+        for(int i = 0; i < newPosts.arrayLength; i++) {
+            query = new char[](query, "($(iu.makeString(newPosts[i].userId)), '$(newPosts[i].content)')")
+            if(i < newPosts.arrayLength - 1) query = new char[](query, ",")
+        }
+        query = new char[](query, ";")
+        execQuery(query, 0)
+    }
+
+    Post PostsRepository:getPostById(store int postId) {
+        char query[] = "SELECT * FROM posts WHERE id = $(iu.makeString(postId)) LIMIT 1;"
+
+        MySQLRow result[] = execQuery(query, 0)
+
+        if (result.arrayLength > 0) {
+            Post post = pu.getPostFromMYSQLRow(result[0])
+            return post
+        }
+        return null
+    }
+
+    Post[] PostsRepository:getUserFeed(store int userId) {
+        char query[] = "SELECT id, userId, likes, content, created_at FROM posts WHERE userId <> $(iu.makeString(userId)) ORDER BY created_at DESC LIMIT $(iu.makeString(PAGINATION_SIZE));"
+                
+        MySQLRow result[] = execQuery(query, 0)
+        Post userPosts[] = new Post[]()
+
+        if (result.arrayLength > 0) {
+            for(int i = 0; i < result.arrayLength; i++) {
+                Post post =  pu.getPostFromMYSQLRow(result[i])
+                userPosts = new Post[](userPosts, post)
+            }
+        }
+
+        return userPosts
+    }
+
+    Post[] PostsRepository:getPosts(char start[], char amount[]) {
+        char query[] = "SELECT id, userId, likes, content, created_at FROM posts ORDER BY id ASC LIMIT $amount OFFSET $start;"
+
+        MySQLRow result[] = execQuery(query, 0)
+        Post userPosts[] = new Post[]()
+
+        if (result.arrayLength > 0) {
+            for(int i = 0; i < result.arrayLength; i++) {
+                Post post =  pu.getPostFromMYSQLRow(result[i])
+                userPosts = new Post[](userPosts, post)
+            }
+        }
+
+        return userPosts
+    }
+
+    MySQLRow[] execQuery(char query[], int threadId) {
+        MySQLRow result[] = null
+
+        DateTime connectionStart = ic.getTime()
+        MySQL conn = createNewConnection()
+        int timeToConnect = ls.getMilisecondsExecutionTimeSince(connectionStart)
+        
+
+        DateTime executionStart = ic.getTime()
+        if(!conn.execute(query)) throw new Exception("Failed to fetch post from database")
+        result = conn.fetchAll()
+        conn.close()
+        int timeToExecute = ls.getMilisecondsExecutionTimeSince(executionStart)
+
+        logger.info(new char[](
+            debugMSG,
+            "{\"threadId\": \"$(iu.makeString(threadId))\",  \"connectionTime\": \"$(iu.makeString(timeToConnect))\", \"executionTime\": \"$(iu.makeString(timeToExecute))\"}"
+        ))
+        return result
+    }
+
+    MySQL createNewConnection() {
+        return new MySQL(DatabaseConfig.host, DatabaseConfig.port, DatabaseConfig.user, DatabaseConfig.password, DatabaseConfig.databaseName)
+    }
+
+}

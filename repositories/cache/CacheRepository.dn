@@ -1,0 +1,100 @@
+uses libs.utils.Constants
+uses libs.utils.DatabaseConfig
+
+const char debugMSG[] = "[@CacheRepository]"
+
+component provides repositories.cache.CacheRepository requires time.TimeUnix timeUnix, time.Calendar ic, data.IntUtil iu,
+libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, repositories.posts.PostsRepository, libs.utils.Lab lab {
+    Mutex cacheLock = new Mutex()
+
+    void CacheRepository:setPosts(store Post posts[]) {
+        cache = posts
+    }
+
+    Post[] CacheRepository:getPosts() {
+        return cache
+    }
+
+    void CacheRepository:storeNewPosts() {
+        Post newPosts[] = new Post[]()
+        
+        for(int i = 0; i < cache.arrayLength; i++) {
+            if(cache[i].id == 0) newPosts = new Post[](newPosts, cache[i])
+        }
+
+        PostsRepository repo = new PostsRepository()
+        repo.addPosts(newPosts)
+    }
+
+
+    Post[] CacheRepository:getCachedPosts() {
+        Post cachedPosts[] = new Post[]()
+        Post processedPosts[] = lab.shuffle(cache)
+        processedPosts = lab.bubbleSort(processedPosts)
+
+        for(int i = 0; i < processedPosts.arrayLength; i++) {
+            if(cachedPosts.arrayLength > 5) break
+            if(processedPosts[i].id != 0) cachedPosts = new Post[](cachedPosts, processedPosts[i])
+        }
+
+        return cachedPosts
+    }
+
+    void CacheRepository:removeNewPostsFromCache() {
+        Post newCache[] = new Post[]()
+        for(int i = 0; i < cache.arrayLength; i++) {
+            if(cache[i].id != 0) newCache = new Post[](newCache, cache[i])
+        }
+        cache = newCache
+    }
+    
+    CachedPost CacheRepository:getPostByIdFromCache(store int postId) {
+        CachedPost cachedPost = new CachedPost(isInCache = false)
+        
+        for (int i = 0; i < cache.arrayLength; i++) {
+            if (cache[i].id == postId) {
+                int ttlUnixInSeconds = timeUnix.toUnixTime(cache[i].ttl)
+                int nowUnixInSeconds = timeUnix.toUnixTime(ic.getTime())
+                if((nowUnixInSeconds - ttlUnixInSeconds) < 10 * 60) {
+                    cachedPost.post = cache[i]
+                    cachedPost.isInCache = true
+                    break
+                }
+            }
+        }
+
+        if (!cachedPost.isInCache) {
+            PostsRepository repo = new PostsRepository()
+            cachedPost.post = repo.getPostById(postId)
+        }
+
+        return cachedPost
+    }
+
+    void CacheRepository:addPostInCache(store Post cachePost) {
+        bool existsInCache = false
+
+        for (int i = 0; i < cache.arrayLength; i++) {
+            if (cache[i].id == cachePost.id) {
+                int ttlUnixInSeconds = timeUnix.toUnixTime(cache[i].ttl)
+                int nowUnixInSeconds = timeUnix.toUnixTime(ic.getTime())
+                if((nowUnixInSeconds - ttlUnixInSeconds) < 5 * 60) {
+                    existsInCache = true
+                    break
+                }
+            }
+        }
+
+        if(!existsInCache) cache = new Post[](cache, cachePost)
+    }
+
+
+    void CacheRepository:addNewPostInCache(store Post cachePost) {
+        cache = new Post[](cachePost, cache)
+    }
+
+    void CacheRepository:clearState() {
+        cache = new Post[]()
+    }
+
+}

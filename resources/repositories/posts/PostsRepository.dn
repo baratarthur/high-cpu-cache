@@ -1,0 +1,17 @@
+uses time.DateUtil
+uses libs.krabs.MetricsStore
+
+data Post {
+    int id
+    int userId
+    int likes
+    char content[]
+    DateTime ttl // Time to live in miliseconds, for cache eviction
+}
+
+interface PostsRepository {
+    void addPosts(store Post newPosts[])
+    Post getPostById(store int postId)
+    Post[] getUserFeed(store int userId)
+    Post[] getPosts(char start[], char amount[])
+}

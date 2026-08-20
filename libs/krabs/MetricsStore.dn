@@ -1,0 +1,192 @@
+
+const char TAG[] = "[@MetricsStore] - "
+
+component provides MetricsStore requires libs.utils.Logger logger, data.IntUtil iu, time.Timer timer, data.json.JSONEncoder je,
+time.Calendar ic, time.TimeUnix timeUnix, data.csv.CSVParser csvParser, io.File {
+    static RequestMetric requests[] = new RequestMetric[]()
+    static int cacheSize
+    static int cacheHit
+    static int cacheMiss
+    static bool measure = false
+
+    static int deliveredThreadId = 0
+    Mutex idLock = new Mutex()
+
+    void MetricsStore:hitCache() {
+        cacheHit++
+    }
+
+    void MetricsStore:missCache() {
+        cacheMiss++
+    }
+
+    void MetricsStore:startCycleMeasurement() {
+        measure = true
+        asynch::measureEachSecond()
+    }
+
+    void MetricsStore:finishCycleMeasurement() {
+        measure = false
+    }
+
+    int MetricsStore:getId() {
+        mutex(idLock) {
+            deliveredThreadId++
+        }
+        return deliveredThreadId
+    }
+
+    void measureEachSecond() {
+        while(true) {
+            if (!measure) break
+            dec totalLatency = totalLatency()
+
+            char log[] = new char[](
+                TAG,
+                "{",
+                "\"cacheHits\": \"$(iu.makeString(cacheHit))\",",
+                "\"cacheMiss\": \"$(iu.makeString(cacheMiss))\",",
+                "\"total_latency\": \"$(iu.makeString(totalLatency))\"",
+                "}"
+            )
+            logger.storeInfo(log)
+            timer.sleep(1000)
+        }
+
+        File fd = new File("log_requests.csv", File.WRITE)
+        if(csvParser.writeDocument(fd, true, ",", requests)) {
+            logger.storeInfo("document stored successfully")
+        } else {
+            logger.storeInfo("Error while trying to save logs")
+        }
+    }
+
+    dec cacheLookupTime() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].cacheLookupEndTime !=0 && requests[i].cacheLookupTime !=0) {
+                metricAcc += (requests[i].cacheLookupEndTime - requests[i].cacheLookupTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    dec databaseServiceTime() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].databaseRequestEndTime !=0 && requests[i].databaseRequestStartTime !=0) {
+                metricAcc += (requests[i].databaseRequestEndTime - requests[i].databaseRequestStartTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    dec cacheUpdateTime() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].cacheUpdateEndTime !=0 && requests[i].cacheUpdateStartTime !=0) {
+                metricAcc += (requests[i].cacheUpdateEndTime - requests[i].cacheUpdateStartTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    dec waitingBeforeCacheLookup() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].cacheLookupTime !=0 && requests[i].arrivalTime !=0) {
+                metricAcc += (requests[i].cacheLookupTime - requests[i].arrivalTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+
+    dec waitingBeforeDatabase() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].databaseRequestStartTime !=0 && requests[i].cacheLookupEndTime !=0) {
+                metricAcc += (requests[i].databaseRequestStartTime - requests[i].cacheLookupEndTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    dec waitingBeforeCacheUpdate() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].cacheUpdateStartTime !=0 && requests[i].databaseRequestEndTime !=0) {
+                metricAcc += (requests[i].cacheUpdateStartTime - requests[i].databaseRequestEndTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    dec totalLatency() {
+        int metricAcc = 0
+        int validMetrics = 0
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if(requests[i].executionEnd !=0 && requests[i].arrivalTime !=0) {
+                metricAcc += (requests[i].executionEnd - requests[i].arrivalTime)
+                validMetrics++
+            }
+        }
+        if (validMetrics == 0) return 0
+        return metricAcc / validMetrics
+    }
+
+    void MetricsStore:startProcess(store int threadId) {
+        DateTime currentTime = ic.getTime()
+        int currentMillisecs = (timeUnix.toUnixTime(currentTime)*1000) + currentTime.millisecond
+        RequestMetric rm = new RequestMetric(id = threadId, arrivalTime = currentMillisecs)
+        requests = new RequestMetric[](requests, rm)
+    }
+
+    void MetricsStore:tickMetric(store int threadId, char metric[], opt int incomingCacheSize) {
+        if (isset incomingCacheSize) cacheSize = incomingCacheSize
+        DateTime currentTime = ic.getTime()
+        int currentMillisecs = (timeUnix.toUnixTime(currentTime)*1000) + currentTime.millisecond
+        for(int i = 0; i < requests.arrayLength; i++) {
+            if (requests[i].id == threadId) {
+                switchChangeMetric(requests[i], metric, currentMillisecs)
+                break
+            }
+        }
+    }
+
+    void switchChangeMetric(RequestMetric rm, char metric[], int currentMillisecs) {
+        if (metric == "cacheLookupTime") {
+            rm.cacheLookupTime = currentMillisecs
+        } else if (metric == "cacheLookupEndTime") {
+            rm.cacheLookupEndTime = currentMillisecs
+        } else if (metric == "databaseRequestStartTime") {
+            rm.databaseRequestStartTime = currentMillisecs
+        } else if (metric == "databaseRequestEndTime") {
+            rm.databaseRequestEndTime = currentMillisecs
+        } else if (metric == "cacheUpdateStartTime") {
+            rm.cacheUpdateStartTime = currentMillisecs
+        } else if (metric == "cacheUpdateEndTime") {
+            rm.cacheUpdateEndTime = currentMillisecs
+        } else if (metric == "executionEnd") {
+            rm.executionEnd = currentMillisecs
+        }
+    }
+}

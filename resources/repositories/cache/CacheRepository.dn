@@ -1,0 +1,37 @@
+uses time.DateUtil
+uses repositories.posts.PostsRepository
+
+data SetPostsParamsFormat {
+    Post posts[]
+}
+
+data AddPostInCacheParamsFormat {
+    Post cachePost
+}
+
+data AddNewPostInCacheParamsFormat {
+    Post cachePost
+}
+
+data GetPostByIdFromCacheParamsFormat {
+    int postId
+}
+
+data CachedPost {
+    Post post
+    bool isInCache
+}
+
+interface CacheRepository {
+    transfer Post cache[]
+
+    void setPosts(store Post posts[])
+    void addPostInCache(store Post cachePost)
+    void addNewPostInCache(store Post cachePost)
+    void storeNewPosts()
+    void removeNewPostsFromCache()
+    CachedPost getPostByIdFromCache(store int postId)
+    Post[] getCachedPosts()
+    Post[] getPosts()
+    void clearState()
+}

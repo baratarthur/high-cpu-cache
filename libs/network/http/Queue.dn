@@ -1,0 +1,28 @@
+component provides Queue requires net.TCPSocket {
+    TCPSocket queue[] = new TCPSocket[]()
+    Mutex lock = new Mutex()
+
+    void Queue:add(store TCPSocket s) {
+        mutex(lock) { queue = new TCPSocket[](queue, s) }
+    }
+
+    TCPSocket Queue:service() {
+        if(queue.arrayLength == 0) return null
+        TCPSocket socket = queue[0]
+        mutex(lock) {
+            TCPSocket newQueue[] = new TCPSocket[]()
+            for(int i = 1; i < queue.arrayLength; i++) newQueue = new TCPSocket[](newQueue, queue[i])
+            queue = newQueue
+        }
+        return socket
+    }
+
+    TCPSocket Queue:next() {
+        if(queue.arrayLength == 0) return null
+        return queue[0]
+    }
+
+    int Queue:getLength() {
+        return queue.arrayLength
+    }
+}
