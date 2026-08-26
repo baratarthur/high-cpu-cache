@@ -27,7 +27,7 @@ spec:
         app: mysql
     spec:
       containers:
-      - name: mysql
+      - name: mysqlmysql-0 
         image: mysql:8.0
         # Argumentos para otimizar o motor InnoDB
         args:
@@ -83,7 +83,7 @@ data:
         userId INT NOT NULL,
         likes INT DEFAULT 0,
         content TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at INT DEFAULT (UNIX_TIMESTAMP()),
         PRIMARY KEY (id),
         INDEX idx_userid (userId)
     );
