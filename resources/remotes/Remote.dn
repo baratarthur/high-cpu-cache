@@ -2,5 +2,5 @@ uses net.TCPSocket
 
 interface Remote {
     void start(int PORT)
-    void handleRequest(TCPSocket s)
+    void handleRequest(int queueIndex)
 }
