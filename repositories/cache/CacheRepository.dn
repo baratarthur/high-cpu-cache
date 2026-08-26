@@ -32,15 +32,16 @@ libs.utils.PostsUtils pu, data.query.Sort sort {
 
     Post[] CacheRepository:getCachedPosts() {
         Post cachedPosts[] = new Post[]()
-        Post processedPosts[] = pu.calculateHalfLifeWeight(cache)
-        processedPosts = sort.sort(processedPosts, Post.[weight])
-
-        for(int i = 0; i < processedPosts.arrayLength; i++) {
-            if(cachedPosts.arrayLength > 5) break
-            if(processedPosts[i].id != 0) cachedPosts = new Post[](cachedPosts, processedPosts[i])
+        
+        for(int i = 0; i < cache.arrayLength; i++) {
+            if(cache[i].id != 0) cachedPosts = new Post[](cachedPosts, cache[i])
         }
 
-        return cachedPosts
+        Post processedPosts[] = pu.calculateHalfLifeWeight(cachedPosts)
+        processedPosts = sort.sort(processedPosts, Post.[weight])
+
+        Post returnPosts[] = dana.sub(processedPosts, 0, 4)
+        return returnPosts
     }
 
     void CacheRepository:removeNewPostsFromCache() {
