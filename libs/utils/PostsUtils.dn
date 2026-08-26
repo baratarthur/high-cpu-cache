@@ -23,8 +23,7 @@ data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSO
                 content = row.fields[i].value
             } else if (row.fields[i].name == "created_at") {
                 int timeInMs = iu.intFromString(row.fields[i].value)
-                int timeInSec = timeInMs / 1000
-                createdAt = timeUnix.fromUnixTime(timeInSec)
+                createdAt = timeUnix.fromUnixTime(timeInMs)
             }
         }
 
