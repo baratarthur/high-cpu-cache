@@ -209,7 +209,7 @@ libs.krabs.MetricsStore ms, time.TimeUnix timeUnix, time.Timer timer, libs.utils
         char body[] = new char[](req.postData)
         CreatePostDTO createPostDTO = je.jsonToData(body, typeof(CreatePostDTO))
         
-        Post newPost = new Post(0, createPostDTO.userId, 0, createPostDTO.content, new DateTime())
+        Post newPost = new Post(id=0, userId=createPostDTO.userId, likes=0, content=createPostDTO.content, ttl=new DateTime(), createdAt=new DateTime())
         mutex(writingLock) { cacheRepo.addNewPostInCache(newPost) }
         
         return httpUtil.build201(req, "Success")

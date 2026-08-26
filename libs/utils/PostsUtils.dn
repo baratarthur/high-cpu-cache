@@ -1,5 +1,5 @@
 component provides libs.utils.PostsUtils requires repositories.posts.PostsRepository, data.mysql.MySQL, time.Calendar ic,
-data.IntUtil iu {
+data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je {
     Post[] PostsUtils:accumulate(Post existingPosts[], Post newPosts[]) {
         return new Post[](existingPosts, newPosts)
     }
@@ -10,6 +10,7 @@ data.IntUtil iu {
         int likes
         char content[]
         DateTime ttl = ic.getTime()
+        DateTime createdAt
 
         for(int i = 0; i < row.fields.arrayLength; i++) {
             if ( row.fields[i].name == "id") {
@@ -20,9 +21,13 @@ data.IntUtil iu {
                 likes = iu.intFromString(row.fields[i].value)
             } else if (row.fields[i].name == "content") {
                 content = row.fields[i].value
+            } else if (row.fields[i].name == "created_at") {
+                int timeInMs = iu.intFromString(row.fields[i].value)
+                int timeInSec = timeInMs / 1000
+                createdAt = timeUnix.fromUnixTime(timeInSec)
             }
         }
 
-        return new Post(id, userId, likes, content, ttl)
+        return new Post(id=id, userId=userId, likes=likes, content=content, ttl=ttl, createdAt=createdAt)
     }
 }

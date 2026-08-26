@@ -2,10 +2,11 @@ uses libs.utils.Constants
 uses libs.utils.DatabaseConfig
 
 const char debugMSG[] = "[@PostsRepository]"
-const int PAGINATION_SIZE = 5
 
 component provides repositories.posts.PostsRepository requires time.TimeUnix timeUnix, time.Calendar ic, data.IntUtil iu, data.mysql.MySQL,
 libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, libs.utils.PostsUtils pu, libs.krabs.MetricsStore ms {
+    const int PAGINATION_SIZE = 5
+
     void PostsRepository:addPosts(store Post newPosts[]) {
         char query[] = "INSERT INTO posts (userId, content) VALUES "
         
