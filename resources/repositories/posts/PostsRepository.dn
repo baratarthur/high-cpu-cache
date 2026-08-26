@@ -5,6 +5,7 @@ data Post {
     int id
     int userId
     int likes
+    dec weight
     char content[]
     DateTime ttl // Time to live in miliseconds, for cache eviction
     DateTime createdAt

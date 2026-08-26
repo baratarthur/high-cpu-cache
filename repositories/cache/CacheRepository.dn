@@ -4,7 +4,8 @@ uses libs.utils.DatabaseConfig
 const char debugMSG[] = "[@CacheRepository]"
 
 component provides repositories.cache.CacheRepository requires time.TimeUnix timeUnix, time.Calendar ic, data.IntUtil iu,
-libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, repositories.posts.PostsRepository, libs.utils.Lab lab {
+libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, repositories.posts.PostsRepository,
+libs.utils.PostsUtils pu, data.query.Sort sort {
     Mutex cacheLock = new Mutex()
 
     void CacheRepository:setPosts(store Post posts[]) {
@@ -31,8 +32,8 @@ libs.utils.Logger logger, libs.krabs.LatencyStore ls, data.json.JSONEncoder je, 
 
     Post[] CacheRepository:getCachedPosts() {
         Post cachedPosts[] = new Post[]()
-        Post processedPosts[] = lab.shuffle(cache)
-        processedPosts = lab.bubbleSort(processedPosts)
+        Post processedPosts[] = pu.calculateHalfLifeWeight(cache)
+        processedPosts = sort.sort(processedPosts, Post.[weight])
 
         for(int i = 0; i < processedPosts.arrayLength; i++) {
             if(cachedPosts.arrayLength > 5) break

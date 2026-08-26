@@ -1,5 +1,5 @@
 component provides libs.utils.PostsUtils requires repositories.posts.PostsRepository, data.mysql.MySQL, time.Calendar ic,
-data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je {
+data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je, util.Math math, libs.krabs.LatencyStore ls {
     Post[] PostsUtils:accumulate(Post existingPosts[], Post newPosts[]) {
         return new Post[](existingPosts, newPosts)
     }
@@ -29,4 +29,23 @@ data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSO
 
         return new Post(id=id, userId=userId, likes=likes, content=content, ttl=ttl, createdAt=createdAt)
     }
+
+    Post[] PostsUtils:calculateHalfLifeWeight(Post inCache[]){
+        Post cacheCopy[] =[] inCache
+
+        for(int i = 0; i < cacheCopy.arrayLength; i++) {
+            cacheCopy[i].weight = getWeight(cacheCopy[i].createdAt)
+        }
+
+        return cacheCopy
+    }
+
+    const int halfLife = 7*24*60*60*1000
+
+    dec getWeight(DateTime time) {
+        int milisecondsSinceCreated = ls.getMilisecondsExecutionTimeSince(time)
+        dec power = milisecondsSinceCreated / halfLife
+        return 1 / math.power(2.0, power)
+    }
+
 }
