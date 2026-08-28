@@ -1,6 +1,6 @@
 component provides libs.utils.PostsUtils requires repositories.posts.PostsRepository, data.mysql.MySQL, time.Calendar ic,
 data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je, util.Math math, libs.krabs.LatencyStore ls,
-data.DecUtil du {
+data.Dec512Util du {
     Post[] PostsUtils:accumulate(Post existingPosts[], Post newPosts[]) {
         return new Post[](existingPosts, newPosts)
     }
@@ -47,7 +47,7 @@ data.DecUtil du {
 
     dec getWeight(DateTime time) {
         int milisecondsSinceCreated = ls.getMilisecondsExecutionTimeSince(time)
-        dec power = (milisecondsSinceCreated*1.0) / (halfLife*1.0)
+        dec512 power = milisecondsSinceCreated / halfLife
         logger.storeInfo("half life: $(iu.makeString(halfLife)) | power: $(du.makeString(power, 4)) | millis: $(iu.makeString(milisecondsSinceCreated))")
         return 100 / math.power(2.0, power)
     }
