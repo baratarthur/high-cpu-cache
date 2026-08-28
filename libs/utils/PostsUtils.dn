@@ -43,13 +43,13 @@ data.DecUtil du {
         return cacheCopy
     }
 
-    const int halfLife = 2*24*60*60*1000
+    const int halfLife = 60*60*1000
 
     dec getWeight(DateTime time) {
         int milisecondsSinceCreated = ls.getMilisecondsExecutionTimeSince(time)
         dec power = milisecondsSinceCreated / halfLife
-        logger.storeInfo("half life: $(iu.makeString(halfLife)) | power: $(du.makeString(power)) | millis: $(iu.makeString(milisecondsSinceCreated))")
-        return 1 / math.power(2.0, power)
+        logger.storeInfo("half life: $(iu.makeString(halfLife)) | power: $(du.makeString(power, 4)) | millis: $(iu.makeString(milisecondsSinceCreated))")
+        return 100 / math.power(2.0, power)
     }
 
 }
