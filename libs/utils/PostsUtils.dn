@@ -32,10 +32,9 @@ data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSO
 
     Post[] PostsUtils:calculateHalfLifeWeight(Post inCache[]){
         Post cacheCopy[] = new Post[inCache.arrayLength]
-        cacheCopy =[] inCache
 
         for(int i = 0; i < cacheCopy.arrayLength; i++) {
-            cacheCopy[i].weight = getWeight(cacheCopy[i].createdAt)
+            cacheCopy[i] = new Post(id=inCache[i].id, userId=inCache[i].userId, content=inCache[i].content, likes=inCache[i].likes, ttl=inCache[i].ttl, weight=getWeight(inCache[i].createdAt), createdAt=inCache[i].createdAt)
         }
 
         return cacheCopy
