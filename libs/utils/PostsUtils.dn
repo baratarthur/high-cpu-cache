@@ -37,6 +37,8 @@ data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSO
             cacheCopy[i] = new Post(id=inCache[i].id, userId=inCache[i].userId, content=inCache[i].content, likes=inCache[i].likes, ttl=inCache[i].ttl, weight=getWeight(inCache[i].createdAt), createdAt=inCache[i].createdAt)
         }
 
+        logger.storeInfo("Weighted posts: $(je.jsonFromArray(cacheCopy))")
+
         return cacheCopy
     }
 
