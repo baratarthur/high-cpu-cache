@@ -177,7 +177,8 @@ libs.krabs.MetricsStore ms, time.TimeUnix timeUnix, time.Timer timer, libs.utils
         int postId = pathInfo[1].string.intFromString()
         
         CachedPost cachedPost = cacheRepo.getPostByIdFromCache(postId) // stateful
-        
+        if(cachedPost.post == null) return httpUtil.build404(req)
+
         if(cachedPost.isInCache) ms.hitCache()
         else {
             ms.missCache()

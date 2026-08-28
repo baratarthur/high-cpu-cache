@@ -85,7 +85,7 @@ libs.utils.PostsUtils pu, data.query.Sort sort {
         bool existsInCache = false
 
         for (int i = 0; i < cache.arrayLength; i++) {
-            logger.storeInfo("Post: $(je.jsonFromData(cache[i])) | cachePost: $(je.jsonFromData(cachePost))")
+            // logger.storeInfo("Post: $(je.jsonFromData(cache[i])) | cachePost: $(je.jsonFromData(cachePost))")
             if (cache[i].id == cachePost.id) {
                 int ttlUnixInSeconds = timeUnix.toUnixTime(cache[i].ttl)
                 int nowUnixInSeconds = timeUnix.toUnixTime(ic.getTime())
