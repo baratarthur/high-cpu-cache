@@ -1,5 +1,6 @@
 component provides libs.utils.PostsUtils requires repositories.posts.PostsRepository, data.mysql.MySQL, time.Calendar ic,
-data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je, util.Math math, libs.krabs.LatencyStore ls {
+data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSONEncoder je, util.Math math, libs.krabs.LatencyStore ls,
+data.DecUtil du {
     Post[] PostsUtils:accumulate(Post existingPosts[], Post newPosts[]) {
         return new Post[](existingPosts, newPosts)
     }
@@ -37,16 +38,17 @@ data.IntUtil iu, time.TimeUnix timeUnix, libs.utils.Logger logger, data.json.JSO
             cacheCopy[i] = new Post(id=inCache[i].id, userId=inCache[i].userId, content=inCache[i].content, likes=inCache[i].likes, ttl=inCache[i].ttl, weight=getWeight(inCache[i].createdAt), createdAt=inCache[i].createdAt)
         }
 
-        logger.storeInfo("Weighted posts: $(je.jsonFromArray(cacheCopy))")
+        // logger.storeInfo("Weighted posts: $(je.jsonFromArray(cacheCopy))")
 
         return cacheCopy
     }
 
-    const int halfLife = 7*24*60*60*1000
+    const int halfLife = 2*24*60*60*1000
 
     dec getWeight(DateTime time) {
         int milisecondsSinceCreated = ls.getMilisecondsExecutionTimeSince(time)
         dec power = milisecondsSinceCreated / halfLife
+        logger.storeInfo("half life: $(iu.makeString(halfLife)) | power: $(du.makeString(power)) | millis: $(iu.makeString(milisecondsSinceCreated))")
         return 1 / math.power(2.0, power)
     }
 
